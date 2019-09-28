@@ -1,0 +1,283 @@
+$WifiProfiles = netsh.exe wlan show profiles
+$WifiProfiles = $WifiProfiles | Select-String "All User Profile"
+$WiFiArray = @()
+ 
+foreach($profile in $WifiProfiles)
+{
+    $ProfileName = ($profile -split ": ")[1]
+    $ProfileSettings= netsh.exe wlan show profiles name="$ProfileName" key=clear
+    $Password = (($ProfileSettings | Select-String "Key Content") -split ": ")[1]
+    $AuthenticationType = (($ProfileSettings | Select-String "Authentication") -split ": ")[1]
+     
+    $object = New-Object PSObject -Property  @{
+        "Wifi Profile Name" = $ProfileName
+         "Password" = $Password
+         "Authentication Type" = $AuthenticationType
+                     
+   }
+   $WiFiArray += $object
+}
+ 
+$WiFiArray
+
+
+*****************************************8
+
+#===========================================================================
+# Server list
+$Servers = Get-Content "c:\users\$env:username\desktop\input.txt"
+   
+# Define empty array
+$Results = @()
+  
+# Looping each server and adding objects to array
+$Results = Invoke-Command -cn $Servers {
+  
+            # URLs
+            $URLs = "http://test1.powershellbros.com",
+                    "http://test2.powershellbros.com",
+                    "http://test3.powershellbros.com"
+  
+            # Creating new object
+            $Object = New-Object PSCustomObject
+            $Object | Add-Member -MemberType NoteProperty -Name "Servername" -Value $env:computername
+            $Object | Add-Member -MemberType NoteProperty -Name "Netstat" -Value $(netstat -an)
+  
+            # Looping each URL
+            Foreach ($URL in $URLs){
+                $ObjectProp = (($URL -split "\//")[1]).trim()
+                $Trace = Test-NetConnection $ObjectProp -traceroute
+                $Object | Add-Member -MemberType NoteProperty -Name $($ObjectProp) -Value $Trace -Force
+            }
+            # Adding object to array
+            $Object
+  
+} | select * -ExcludeProperty runspaceid, pscomputername,PSShowComputerName
+  
+#===========================================================================
+ 
+# Paths for netstat and traceroute results
+$NetStatPath = "c:\users\$env:username\desktop\netstat\"
+$TracePath   = "c:\users\$env:username\desktop\traceroute\"
+  
+# Creating folders
+$NetFolder   = Test-Path $NetStatPath; if ( -not $NetFolder)   { New-Item $NetStatPath -type Directory }
+$TraceFolder = Test-Path $TracePath; if ( -not $TraceFolder) { New-Item $TracePath -type Directory }
+ 
+# Saving results to txt files
+foreach ($Item in $Results) {
+     
+    #Getting all properties from object
+    $Properties = ($item | Get-Member -MemberType Properties).name | where {$_ -ne "Servername"}
+     
+    # Looping each property
+    Foreach ($p in $Properties) {
+        If($p -notmatch "netstat"){
+            $Path = $TracePath + "$($item.Servername)" + "_$($p)" + "_Traceroute.txt"
+            $item.$p | Out-File $Path -Force
+        }
+        Else{
+            $Path = $NetStatPath + "$($item.Servername)" + "_NetStat.txt"
+            $Item.$p | Out-File $Path -Force
+        }
+    }
+}
+
+*************************************************
+
+# If database uses specific instance provide it as a part of the parameter in format SQLServer\Instance
+ Script needs remote access to SQL server, so ensure that port to SQL server is open 🙂
+
+
+
+function Connect-SQL {
+        [CMDletbidings()]
+        param
+        (
+            [Parameter(Position=0, Mandatory=$true, HelpMessage="SQL query", ValueFromPipeline = $true)] $query,
+            [Parameter(Position=1, Mandatory=$true, HelpMessage="SQL server instance name", ValueFromPipeline = $true)] $SqlSrv,
+            [Parameter(Position=2, Mandatory=$true, HelpMessage="SQL database name", ValueFromPipeline = $true)] $SqlDb
+        ) 
+        $ee = @()
+        $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
+        $SqlConnection.ConnectionString = "Server = $SqlSrv; Database =$SqlDb; Integrated Security = $True"       
+        $handler = [System.Data.SqlClient.SqlInfoMessageEventHandler] {
+            param($sender, $event)
+             
+        }
+        $SqlConnection.add_InfoMessage($handler);
+        $SqlConnection.FireInfoMessageEventOnUserErrors = $true;
+ 
+        try
+        {
+            $SqlConnection.Open()
+ 
+            $SqlCmd = New-Object System.Data.SqlClient.SqlCommand 
+        
+            $SqlQuery1 = $query
+            $SqlCmd.CommandText = $SqlQuery1
+            $SqlCmd.Connection = $SqlConnection
+             
+            $SqlDa = New-Object System.Data.SqlClient.SqlDataAdapter
+            $SqlDa.SelectCommand = $SqlCmd 
+            $Ds = New-Object System.Data.DataSet
+            $SQLResultCount = $SqlCmd.ExecuteNonQuery()            
+             
+            if($SQLResultCount -eq -1){
+                [void] $SqlDa.Fill($Ds)
+                $QueryResults = @()
+                $Ds.Tables[0] | %{$QueryResults += $_}
+                $SQLResultCount = $Ds.Tables[0].Rows.Count
+            }
+             
+            $SqlConnection.Close()
+            return $QueryResults
+        }
+        catch
+        {
+           return 'Error:' + $_.Exception.Message
+        }
+ 
+}
+
+*************************************8
+
+$Servers = Get-Content -Path "d:\scripts\servers.txt"
+$DestinationServ = "SCOM01","SCOM02","SCOM03","SCOMO4","SCOM05","SCOM06"
+$Array = @()
+$Port = "5723"
+ 
+Foreach($Server in $Servers)
+{
+    $Obejct = $null
+    $FQDN = $null
+    $Server = $Server.Trim()
+ 
+    Write-Host Processing $Server -ForegroundColor Green
+     
+    #Check FQDN for remote computer 
+    $FQDN = ([System.Net.Dns]::GetHostByName(("$Server")))
+ 
+    If(!$FQDN)
+    {
+        Write-Host "$Server does not exist"
+    }
+    Else
+    {
+        # Create a custom object 
+        $Object = New-Object PSCustomObject
+        $Object | Add-Member -MemberType NoteProperty -Name "Server name" -Value $server
+        $Object | Add-Member -MemberType NoteProperty -Name "Port" -Value $Port
+ 
+        Foreach($DServer in $DestinationServ)
+        {
+            $Test = $null
+            Try
+            {
+                $Test = Invoke-Command  -ComputerName $Server -ErrorAction Stop -ScriptBlock{param($Port,$DServer) Test-netconnection -Port $Port -cn $DServer -InformationLevel Quiet } -ArgumentList $Port,$DServer
+                If($Test)
+                {
+                    $Object | Add-Member -MemberType NoteProperty -Name "$DServer" -Value $Test
+                }
+            }
+            Catch
+            {
+                Write-Warning $_.Exception.Message
+                $Object | Add-Member -MemberType NoteProperty -Name "$DServer" -Value "null"
+            }
+        }
+        $Array += $Object  
+ 
+    }
+}
+Write-Host "Results:" -Foreground Yellow
+$Array | Format-Table -Wrap -AutoSize
+$Array | Export-Csv -Path d:\scripts\results.csv -NoTypeInformation
+S
+
+********************************************
+
+#Check connectivity using Test-NetConnection: can specify port number. 
+#For single machine use this one-liner script:
+
+$Server = "DC01"
+$DServer = "SCOM01"
+$Port = "5723"
+Invoke-Command  
+        -ComputerName $Server
+        -ScriptBlock 
+                {
+                    param($Port,$DServer) 
+                    Test-netconnection  
+                        -Port $Port 
+                        -cn $DServer 
+                        -InformationLevel Quiet 
+                } 
+        -ArgumentList $Port,$DServer
+
+***********************
+
+function Sync-ActiveDirectory {
+    <#
+        .SYNOPSIS
+            Creates Active Directory groups, OUs, and users from a CSV file.
+        .PARAMETER CsvFilePath
+            The file path to the CSV file containing employee records.
+    #>
+    [OutputType('null')]
+    [CmdletBinding(SupportsShouldProcess)]
+    param
+    (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SQLDatabaseServer,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SQLDatabaseName,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SQLDatabaseTable,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SQLUsername,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SQLPassword
+    )
+
+    $ErrorActionPreference = 'Stop'
+
+    ## Find the employees
+    Write-Verbose -Message 'Finding employees...'
+    $employees = Invoke-Sqlcmd -ServerInstance $SQLDatabaseServer -Database $SQLDatabaseName -Username $SQLUserName -Password $SQLPassword -Query "SELECT * FROM $SQLDatabaseTable"
+
+    ## Create the users
+    Write-Verbose -Message 'Syncing users....'
+    foreach ($employee in $employees) {
+
+        ## Check for and create the user
+        $proposedUsername = '{0}{1}' -f $employee.FirstName.Substring(0, 1), $employee.LastName
+        if (Get-AdUser -Filter "Name -eq '$proposedUsername'") {
+            Write-Verbose -Message "The AD user [$proposedUsername] already exists."
+        } else {
+            $newUserParams = @{
+                Name        = $proposedUsername
+                Path        = "OU=$($employee.Loc),DC=techsnips,DC=local"
+                Enabled     = $true
+                GivenName   = $employee.FirstName
+                Department  = $employee.Department
+                Surname     = $employee.LastName
+                EmployeeID  = $employee.EmployeeID
+                OfficePhone = $employee.Phone
+            }
+            New-AdUser @newUserParams
+        }
+    }
+}
+
+*****************************************
+https://www.powershellbros.com/create-table-function-working-data-tables-powershell/
