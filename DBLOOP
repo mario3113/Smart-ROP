@@ -1,0 +1,45 @@
+<Biml xmlns="http://schemas.varigence.com/biml.xsd">
+    <Connections>
+        <OleDbConnection Name="OLEDB" ConnectionString="Data Source=192.168.0.212\SERVERSQL;Initial Catalog=Acapulco;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SERVERDES;"/>
+    </Connections>
+    <Packages>
+        <Package ConstraintMode="Linear" Name="LoopSucursales">
+            <Variables>
+                <Variable DataType="String" Name="CurrentDB">tempdb</Variable>
+                <Variable DataType="String" Name="QuerySource">SELECT BaseDatos FROM deus.dbo.MtoCat_SIS_Configuracion_InfoSucursal AS D WHERE  ETL = 1;</Variable>
+                <Variable DataType="Object" Name="rsResults"></Variable>
+            </Variables>
+            <Connections>
+                <Connection ConnectionName="OLEDB">
+                    <Expressions>
+                        <Expression ExternalProperty="InitialCatalog">@[User::CurrentDB]</Expression>
+                    </Expressions>
+                </Connection>
+            </Connections>
+            <Tasks>
+                <ExecuteSQL 
+                    ConnectionName="OLEDB" 
+                    Name="SQL Acquire Data"
+                    ResultSet="Full">
+                    <VariableInput VariableName="User.QuerySource"></VariableInput>
+                    <Results>
+                        <Result VariableName="User.rsResults" Name="0"></Result>
+                    </Results>
+                </ExecuteSQL>
+                <ForEachAdoLoop 
+                    SourceVariableName="User.rsResults" 
+                    ConstraintMode="Linear" 
+                    Name="FELC Enumerate Databases">
+                    <VariableMappings>
+                        <VariableMapping VariableName="User.CurrentDB" Name="0"></VariableMapping>
+                    </VariableMappings>
+                    <Tasks>
+                        <ExecuteSQL ConnectionName="OLEDB" Name="SQL Do something">
+                            <DirectInput>SELECT DB_NAME();</DirectInput>
+                        </ExecuteSQL>
+                    </Tasks>
+                </ForEachAdoLoop>
+            </Tasks>
+        </Package>
+    </Packages>
+</Biml>
