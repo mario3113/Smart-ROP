@@ -1,2 +1,32 @@
-SELECT invt_producto_lotes_bodegas.ware_code, invt_producto_lotes_bodegas.location, invt_producto_lotes_bodegas.lote_id, invt_producto_lotes_bodegas.oh oh_existencia, invt_producto_lotes_bodegas.commited commited_reservado, invt_producto_lotes.entrada_fecha, invt_producto_lotes.entrada_tipo, invt_producto_lotes.entrada_doc_referencia, invt_producto_lotes.fecha_caducidad, invt_ficha_principal.product_id, invt_ficha_principal.code_prov_o_alt, invt_ficha_principal.group_code, invt_ficha_principal.sub_group_code, invt_ficha_principal.product_name, invt_ficha_principal.unidades_empaque, invt_bodegas_lista.ware_name, invt_ficha_principal.presentacion, invt_ficha_principal.product_name_2
-FROM ((invt_producto_lotes_bodegas inner join invt_producto_lotes ON invt_producto_lotes_bodegas.IndexKey_ProdBodLot = invt_producto_lotes.IndexKey_ProdBodLot) INNER JOIN invt_ficha_principal on invt_producto_lotes_bodegas.product_id_corp = invt_ficha_principal.product_id_corp) inner join invt_bodegas_lista  on invt_producto_lotes_bodegas.ware_code = invt_bodegas_lista.ware_code
+SELECT 
+ invt_producto_lotes_bodegas.ware_code, 
+ invt_producto_lotes_bodegas.location, 
+ invt_producto_lotes_bodegas.lote_id, 
+ invt_producto_lotes_bodegas.oh oh_existencia, 
+ invt_producto_lotes_bodegas.commited commited_reservado, 
+ invt_producto_lotes.entrada_fecha, 
+ invt_producto_lotes.entrada_tipo, 
+ invt_producto_lotes.entrada_doc_referencia, 
+ invt_producto_lotes.fecha_caducidad, 
+ invt_ficha_principal.product_id, 
+ invt_ficha_principal.code_prov_o_alt, 
+ invt_ficha_principal.group_code, 
+ invt_ficha_principal.sub_group_code, 
+ invt_ficha_principal.product_name, 
+ invt_ficha_principal.unidades_empaque, 
+ invt_bodegas_lista.ware_name, 
+ invt_ficha_principal.presentacion, 
+ invt_ficha_principal.product_name_2
+FROM 
+  ((invt_producto_lotes_bodegas 
+    INNER JOIN invt_producto_lotes 
+      ON invt_producto_lotes_bodegas.IndexKey_ProdBodLot 
+              =  invt_producto_lotes.IndexKey_ProdBodLot
+      ) 
+    INNER JOIN invt_ficha_principal 
+      ON invt_producto_lotes_bodegas.product_id_corp 
+              = invt_ficha_principal.product_id_corp
+      ) 
+    INNER JOIN invt_bodegas_lista  
+      ON invt_producto_lotes_bodegas.ware_code 
+              =   invt_bodegas_lista.ware_code
