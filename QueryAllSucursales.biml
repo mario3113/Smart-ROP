@@ -34,7 +34,7 @@
                         <VariableMapping VariableName="User.CurrentDB" Name="0"></VariableMapping>
                     </VariableMappings>
                     <Tasks>
-                        <ExecuteSQL ConnectionName="OLEDB" Name="SQL Do something">
+                        <ExecuteSQL ConnectionName="OLEDB" Name="SQL Connection">
                             <DirectInput>SELECT DB_NAME();</DirectInput>
                         </ExecuteSQL>
                     </Tasks>
