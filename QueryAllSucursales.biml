@@ -1,12 +1,12 @@
 <Biml xmlns="http://schemas.varigence.com/biml.xsd">
     <Connections>
-        <OleDbConnection Name="OLEDB" ConnectionString="Data Source=192.168.0.212\SERVERSQL;Initial Catalog=Acapulco;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SERVERDES;"/>
+        <OleDbConnection Name="OLEDB" ConnectionString="Data Source=192.168.0.1\SERVERSQL;Initial Catalog=Acapulco;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SERVERDES;"/>
     </Connections>
     <Packages>
-        <Package ConstraintMode="Linear" Name="LoopSucursales">
+        <Package ConstraintMode="Linear" Name="AllSucursales">
             <Variables>
                 <Variable DataType="String" Name="CurrentDB">tempdb</Variable>
-                <Variable DataType="String" Name="QuerySource">SELECT BaseDatos FROM deus.dbo.MtoCat_SIS_Configuracion_InfoSucursal AS D WHERE  ETL = 1;</Variable>
+                <Variable DataType="String" Name="QuerySource">SELECT BaseDatos FROM deux.dbo.MtoCat_SIS_Configuracion_InfoSucursal AS D WHERE  ETL = 1;</Variable>
                 <Variable DataType="Object" Name="rsResults"></Variable>
             </Variables>
             <Connections>
